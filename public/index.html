@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CityBike | Station Finder</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <span class="eyebrow">CITYBIKE / LIVE SERVICE</span>
+      <!-- 01: t1 -->
+      <h1>Find your next bike</h1>
+      <p>Check station availability and reserve a bike for your journey.</p>
+    </header>
+    <main>
+      <section class="panel" aria-labelledby="stations-heading">
+        <div class="heading-row">
+          <div><p class="eyebrow">01 / STATION FINDER</p><h2 id="stations-heading">Nearby stations</h2></div>
+          <span id="result-count" aria-live="polite"></span>
+        </div>
+        <div class="controls">
+          <label for="search">Search stations</label>
+          <input id="search" type="search" placeholder="Search stations" autocomplete="off">
+          <label class="check"><input id="available-only" type="checkbox"> Available bikes only</label>
+        </div>
+        <div id="notification" role="alert" hidden></div>
+        <div id="station-list" aria-live="polite"><p>Loading stations...</p></div>
+      </section>
+      <section class="panel" id="reserve-panel" aria-labelledby="reserve-heading" hidden>
+        <p class="eyebrow">02 / RESERVATION</p><h2 id="reserve-heading">Reserve a bike</h2>
+        <p id="selected-station"></p>
+        <form id="reservation-form" novalidate>
+          <label for="email">Email address</label>
+          <input id="email" type="email" autocomplete="email" placeholder="name@example.com">
+          <p id="email-error" class="field-error" role="alert" hidden>Enter a valid email address.</p>
+          <button type="submit" id="confirm">Confirm reservation</button>
+        </form>
+      </section>
+      <div id="result" role="status" aria-live="polite"></div>
+    </main>
+    <footer>Training environment — fictional service, no real reservations.</footer>
+  </div>
+</body>
+</html>
