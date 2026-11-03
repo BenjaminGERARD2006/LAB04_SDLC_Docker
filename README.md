@@ -1,79 +1,56 @@
 # CityBike DevOps Lab: Starter Repository
 
-This repository provides the baseline for the CityBike SDLC and Docker DevOps lab. It contains a deliberately unoptimized Node.js application designed to force students to encounter and resolve real-world deployment friction, including runtime crashes, broken layer caching, image bloat, and pipeline security vulnerabilities.
-
-## The Core Difference: Lab PDF vs. Our Refactored Lab
-
-The original `devops-lab-handout-example_2.pdf` provided a solid conceptual narrative but lacked the technical depth required for a batch that has already covered CI/CD, multi-stage builds, and testing environments. We modified the lab architecture to enforce genuine DevOps constraints.
-
-### 1. True Multi-Stage Necessity (Mission 3)
-
-- **PDF:** The starter app had a single `express` dependency and zero build steps. The "multi-stage" reduction in size was purely an artifact of switching from a Debian to an Alpine base image.
-- **Our Version:** We injected 10 heavy `devDependencies` (TypeScript, Webpack, Playwright, etc.) and a mandatory `scripts/build-manifest.js` step. Students cannot simply omit dependencies; they must run a true Stage 1 builder (to compile the manifest) and copy the output to a Stage 2 Alpine runtime to drop the 1.25 GB of bloat.
-
-### 2. Real Environment Gates vs. Dummy Loops (Mission 4)
-
-- **PDF:** The "5 environments" were simulated using a local bash `for` loop that executed the exact same `curl /health` command five times, changing only an environment variable string.
-- **Our Version:** We provisioned five distinct bash scripts in `./scripts/`:
-  - **Staging** tests API contracts.
-  - **UAT** tests UI and business rules.
-  - **OAT** tests 10KB payload limits and burst loads.
-  - **Pre-prod** audits the Docker image size (< 220MB).
-  - **Prod** verifies secure secret injection.
-
-  Students must wire these into a real CI/CD pipeline (e.g., GitHub Actions).
-
-### 3. Build Latency and Layer Caching
-
-- **PDF:** Instructed students to copy `package.json` first, pre-solving layer caching.
-- **Our Version:** We omit this hint. Students write `COPY . .` first, experience 45-second rebuilds on minor code edits due to the 10 heavy `devDependencies`, and must independently diagnose and reorder the layers to achieve 2-second cached rebuilds.
+This repository provides the baseline for the CityBike SDLC and DevOps lab. It contains a Node.js application designed to force students to resolve real-world deployment friction: runtime crashes, broken layer caching, image bloat, and pipeline security vulnerabilities.
 
 ## Directory Structure
 
-```plaintext
+```text
 citybike-devops-lab/
-├── package.json                # Contains core deps + 10 heavy devDependencies + build script
-├── server.js                   # Binds to 0.0.0.0; contains Node 17+ structuredClone code; exposes env telemetry
+├── package.json              # CommonJS setup with 10 heavy devDependencies
+├── package-lock.json         # Locked dependency tree for deterministic npm ci
+├── server.js                 # Contains Node 17+ structuredClone code & telemetry
+├── .gitignore                # Excludes node_modules/ and dist/
 ├── public/
-│   ├── index.html              # Static UI entry
-│   ├── app.js                  # Frontend reservation logic (cleaned of stale comments)
-│   └── styles.css              # Prevents HTTP 500 on asset fetch
+│   ├── index.html            # Static UI entry
+│   ├── app.js                # Frontend reservation logic
+│   └── styles.css            # Stylesheet asset
 └── scripts/
-    ├── build-manifest.js       # Requires devDeps to run; forces the need for a Stage 1 builder
-    ├── test-staging.sh         # Env 1: Validates API contract & checks for build-manifest.json
-    ├── test-uat.sh             # Env 2: Validates business rules (e.g., rejecting zero-bike reservations)
-    ├── test-oat.sh             # Env 3: Validates DDoS protection (payload limits) & concurrency
-    ├── test-preprod.sh         # Env 4: Audits final image size (<220MB) and non-root user
-    └── test-prod.sh            # Env 5: Verifies PROD_API_KEY injection overwrites insecure default
+    ├── build-manifest.js     # Generates dist/build-manifest.json
+    ├── test-staging.sh       # Gate 1: API contract & build manifest audit
+    ├── test-uat.sh           # Gate 2: Static assets, business rules, & 4-station count
+    ├── test-oat.sh           # Gate 3: Payload limits, burst loads, & SIGTERM handling
+    ├── test-preprod.sh       # Gate 4: Image size (<220MB), no node_modules, & preprod config
+    └── test-prod.sh          # Gate 5: Production deployment & PROD_API_KEY security check
 ```
 
-> **Note:** `Dockerfile` and `.dockerignore` are deliberately omitted. The student must author them.
+> **Note:** `Dockerfile`, `.dockerignore`, `.github/workflows/sdlc.yml`, and `scripts/pipeline.sh` are intentionally omitted. Students author them.
 
-## The Mission Roadmap
+## Mission Roadmap
 
 ### Mission 0: Setup & Baseline
 
-The student provisions their environment, cloning this codebase. They run `npm install` and observe the massive `node_modules` folder generated by the heavy development dependencies.
+Students clone the repository (`-o ogn`), link it to a local bare git repo (`~/lab/remote.git`), run `npm install` and `npm run build`, and verify baseline application functionality.
 
 ### Mission 1: The Crash
 
-The student acts as QA and attempts to run the peer's code in a legacy `node:16` container. The application crashes immediately upon hitting `/api/stations` due to a `ReferenceError`. The `server.js` file utilizes `structuredClone()`, which was introduced in Node 17.
+Students run the application inside a legacy `node:16` container and observe an immediate startup failure caused by `structuredClone()`, contrasting it with a working `node:20` environment.
 
 ### Mission 2: Naive Dockerization
 
-The student resolves the crash by authoring a single-stage Dockerfile pinning the `node:20` runtime. Because they copy the entire directory and install all dependencies, the resulting image exceeds 1.2 GB.
+Students author an unoptimized single-stage Dockerfile (`COPY . .` before `npm ci`, no `.dockerignore`), producing a 1.2+ GB image and experiencing severe cache-invalidation latency on minor code edits.
 
 ### Mission 3: Build Latency & Bloat Audit
 
-The student diagnoses two distinct inefficiencies:
-
-- **Latency:** Modifying a single line in `server.js` busts the Docker cache, forcing a complete re-download of all `devDependencies`. The student fixes this by reordering `COPY package*.json ./` before the `npm ci` command.
-- **Bloat:** The student implements a multi-stage build, compiling the manifest in a heavy `node:20` stage and copying only the runtime files to a `node:20-alpine` stage, passing the <220MB limit.
+Students reorder Dockerfile layers to enforce caching (`COPY package*.json ./` followed by `npm ci`), test the `--omit=dev` build failure trap, and implement a true multi-stage build (`node:20` builder stage to `node:20-alpine` runtime stage) to drop the image size below 220MB and purge `node_modules`. They tag and push version `v1`.
 
 ### Mission 4: CI/CD Deployment Gates
 
-The student authors a CI/CD pipeline (e.g., GitHub Actions YAML). They configure the workflow to build the optimized image and promote it sequentially through the 5 environments, executing the corresponding `./scripts/test-*.sh` file at each gate. The pipeline includes a manual approval pause before Production and handles GitHub Secrets injection.
+Students author an orchestrator (`.github/workflows/sdlc.yml` for GitHub Actions or `scripts/pipeline.sh` locally) that manages the container lifecycle (`docker run`, health-check polling, and teardown) while executing the five passive `scripts/test-*.sh` gate scripts sequentially.
 
 ### Mission 5: Bad Push Detection & Rollback
 
-The student introduces a breaking change (simulating a peer pushing untested code). The CI/CD pipeline catches the failure at the appropriate gate (e.g., OAT or Pre-prod). The student then executes a rollback to the last known good image tag.
+Students introduce a breaking code change (`v2` missing `DB_URL`), manually deploy it to production to cause an outage, execute an operational rollback to `v1`, and prove that the automated CI/CD pipeline catches the crash at the Staging gate before production deployment.
+
+### Mission 6: Deliverables & Exit Ticket
+
+Students compile terminal outputs, image size/time metrics, CI/CD pipeline execution evidence, and answer technical reflection questions.
