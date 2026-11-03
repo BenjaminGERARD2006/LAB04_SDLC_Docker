@@ -17,9 +17,16 @@ if docker run --rm "${IMAGE_NAME}" sh -c "test -d node_modules/typescript"; then
   exit 1
 fi
 
-echo "[PRE-PROD] Verifying environment promotion flag (APP_ENV=preprod)..."
-curl -sf "${TARGET_URL}/health" | grep -q '"environment":"preprod"' || {
+echo "[PRE-PROD] Verifying environment promotion flag (APP_ENV=preprod) and PROD_API_KEY..."
+HEALTH=$(curl -sf "${TARGET_URL}/health")
+echo "${HEALTH}" | grep -q '"environment":"preprod"' || {
   echo "FAIL: Container not running with APP_ENV=preprod"
   exit 1
 }
+echo "${HEALTH}" | grep -q '"secureKeyConfigured":true' || {
+  echo "FAIL: Preprod container is missing PROD_API_KEY (secureKeyConfigured is false)"
+  exit 1
+}
 echo "[PRE-PROD] PASSED."
+
+
