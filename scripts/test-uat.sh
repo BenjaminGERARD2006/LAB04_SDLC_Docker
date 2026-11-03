@@ -8,6 +8,13 @@ for path in "/" "/app.js" "/styles.css"; do
   [ "${STATUS}" -eq 200 ] || { echo "FAIL: Asset ${path} returned HTTP ${STATUS}"; exit 1; }
 done
 
+echo "[UAT] Verifying 4 stations and Riverside Park at 0 bikes..."
+STATIONS=$(curl -sf "${TARGET_URL}/api/stations")
+COUNT=$(node -e "const d = JSON.parse(process.argv[1]); console.log(d.stations.length);" "${STATIONS}")
+[ "${COUNT}" -eq 4 ] || { echo "FAIL: Expected 4 stations, got ${COUNT}"; exit 1; }
+RIVERSIDE_BIKES=$(node -e "const d = JSON.parse(process.argv[1]); console.log(d.stations.find(s=>s.id==='riverside').bikes);" "${STATIONS}")
+[ "${RIVERSIDE_BIKES}" -eq 0 ] || { echo "FAIL: Expected 0 bikes at riverside, got ${RIVERSIDE_BIKES}"; exit 1; }
+
 echo "[UAT] Scenario 1: Valid reservation at Central Square (8 bikes)..."
 RES_CODE=$(curl -s -o /tmp/uat_res.json -w "%{http_code}" -X POST "${TARGET_URL}/api/reservations" \
   -H "Content-Type: application/json" \
