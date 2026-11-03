@@ -9,7 +9,7 @@
     "dev": "nodemon server.js"
   },
   "license": "ISC",
-  "type": "module",
+  "type": "commonjs",
 
   "//": "Heavy Dependencies Below",
 
