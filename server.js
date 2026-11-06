@@ -14,7 +14,7 @@ const manifestPath = path.join(__dirname, 'dist', 'build-manifest.json');
 
 const stations = [
   { id: 'central', name: 'Central Square', bikes: 8, docks: 4 },
-  { id: 'riverside', name: 'Riverside Park', bikes: 0, docks: 12 },
+  { id: 'riverside', name: 'Riverside Park', bikes: 5, docks: 12 },
   { id: 'market', name: 'Market Street', bikes: 3, docks: 6 },
   { id: 'campus', name: 'Campus North', bikes: 1, docks: 7 }
 ];
